@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mini WebGIS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+    <style>
+      :root {
+        --pink-50: #fdf2f7;
+        --pink-100: #fce4f0;
+        --pink-200: #f9c6e0;
+        --pink-300: #f59dc8;
+        --pink-500: #e43d86;
+        --pink-700: #a8185c;
+        --pink-900: #5e0f34;
+        --neutral-50: #fefcfd;
+        --neutral-200: #f0e8ed;
+        --neutral-400: #c9b4c0;
+        --neutral-600: #8a6e7a;
+        --neutral-800: #3d2933;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: var(--pink-50);
+        min-height: 100vh;
+      }
+
+      .page-content {
+        padding: 24px 16px 0;
+      }
+
+      /* ── HEADER ── */
+      .header {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .header-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--pink-100);
+        color: var(--pink-700);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        border-radius: 100px;
+        margin-bottom: 10px;
+      }
+      .header h1 {
+        font-size: 26px;
+        font-weight: 600;
+        color: var(--pink-900);
+        margin-bottom: 4px;
+      }
+      .header p {
+        font-size: 13px;
+        color: var(--neutral-600);
+      }
+
+      /* ── CARD ── */
+      .card {
+        max-width: 860px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 20px;
+        border: 1px solid var(--pink-200);
+        overflow: hidden;
+        box-shadow: 0 2px 16px rgba(196, 32, 112, 0.07);
+      }
+
+      /* ── TOOLBAR ── */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 18px;
+        background: var(--pink-50);
+        border-bottom: 1px solid var(--pink-200);
+        flex-wrap: wrap;
+      }
+      .toolbar-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--neutral-400);
+        margin-right: 4px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border: none;
+        border-radius: 10px;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .btn-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .btn-red {
+        background: #fff0f0;
+        color: #b91c1c;
+      }
+      .btn-blue {
+        background: #eff6ff;
+        color: #1d4ed8;
+      }
+      .btn-green {
+        background: #f0fdf4;
+        color: #15803d;
+      }
+      .btn-yellow {
+        background: #fefce8;
+        color: #a16207;
+      }
+
+      .btn-dot-red {
+        background: #ef4444;
+      }
+      .btn-dot-blue {
+        background: #3b82f6;
+      }
+      .btn-dot-green {
+        background: #22c55e;
+      }
+      .btn-dot-yellow {
+        background: #eab308;
+      }
+
+      .btn-sep {
+        width: 1px;
+        height: 22px;
+        background: var(--pink-200);
+        margin: 0 2px;
+        flex-shrink: 0;
+      }
+      .btn-clear {
+        background: var(--pink-100);
+        color: var(--pink-700);
+      }
+      .btn-toggle {
+        background: var(--pink-500);
+        color: #fff;
+      }
+      .btn-toggle.is-hidden {
+        background: var(--neutral-200);
+        color: var(--neutral-600);
+      }
+
+      /* ── MAP ── */
+      .map-wrap {
+        position: relative;
+      }
+
+      #map {
+        width: 100%;
+        height: 420px;
+        background-color: var(--pink-50);
+        background-image: linear-gradient(to bottom, var(--pink-100) 1px, transparent 1px), linear-gradient(to right, var(--pink-100) 1px, transparent 1px);
+        background-size: 40px 40px;
+        background-position: 0 0;
+        position: relative;
+        overflow: hidden;
+        cursor: crosshair;
+      }
+
+      /* ── COMPASS ── */
+      /*
+        Wrapper sits in the corner. The inner SVG (#compassNeedle) rotates
+        via JS when device orientation data is available.
+        Labels (N/S/E/W) are on the outer ring so they stay fixed.
+      */
+      .compass-wrap {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 56px;
+        height: 56px;
+        pointer-events: none;
+        user-select: none;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.14));
+      }
+
+      /* ── COMPASS ROTATE ANIMATION ── */
+      #compassNeedle {
+        transform-origin: 28px 28px; /* centre of the 56×56 viewBox */
+        transition: transform 0.4s ease;
+      }
+
+      /* ── CLICK HINT ── */
+      .map-click-hint {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid var(--pink-200);
+        border-radius: 100px;
+        padding: 5px 14px;
+        font-size: 11px;
+        color: var(--neutral-600);
+        pointer-events: none;
+        white-space: nowrap;
+        transition: opacity 0.4s;
+      }
+
+      /* ── MARKER ── */
+      .marker {
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        border-radius: 50%;
+        cursor: pointer;
+        transform: scale(0);
+        animation: pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        border: 2.5px solid rgba(255, 255, 255, 0.75);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        transition: transform 0.15s;
+      }
+      .marker:hover {
+        transform: scale(1.3) !important;
+        z-index: 100;
+      }
+      @keyframes pop {
+        to {
+          transform: scale(1);
+        }
+      }
+
+      .red {
+        background: #ef4444;
+      }
+      .blue {
+        background: #3b82f6;
+      }
+      .green {
+        background: #22c55e;
+      }
+      .yellow {
+        background: #eab308;
+      }
+
+      /* ── POPUP ── */
+      .popup {
+        position: absolute;
+        background: #fff;
+        border: 1px solid var(--pink-200);
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-family: "DM Mono", monospace;
+        color: var(--neutral-800);
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+        z-index: 99;
+        pointer-events: none;
+      }
+      .popup::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        background: #fff;
+        border-right: 1px solid var(--pink-200);
+        border-bottom: 1px solid var(--pink-200);
+        transform: translateX(-50%) rotate(45deg);
+      }
+
+      /* ── STATUSBAR ── */
+      .statusbar {
+        display: flex;
+        align-items: center;
+        padding: 10px 18px;
+        background: var(--pink-50);
+        border-top: 1px solid var(--pink-200);
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .stat {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--neutral-600);
+      }
+      .stat-badge {
+        display: inline-flex;
+        align-items: center;
+        background: var(--pink-100);
+        color: var(--pink-700);
+        font-weight: 600;
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 100px;
+        min-width: 26px;
+        justify-content: center;
+      }
+      .stat-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .stat-sep {
+        width: 1px;
+        height: 16px;
+        background: var(--pink-200);
+      }
+      .coord-display {
+        margin-left: auto;
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        color: var(--neutral-400);
+      }
+
+      /* ── LAYER PANEL ── */
+      .layer-panel {
+        padding: 14px 18px;
+        border-top: 1px solid var(--pink-200);
+        background: #fff;
+      }
+      .layer-title {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--neutral-400);
+        margin-bottom: 10px;
+      }
+      .layer-list {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .layer-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--neutral-50);
+        border: 1px solid var(--pink-100);
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 12px;
+        color: var(--neutral-800);
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.15s;
+      }
+      .layer-item:hover {
+        border-color: var(--pink-300);
+        background: var(--pink-50);
+      }
+      .layer-item.off {
+        opacity: 0.45;
+      }
+      .layer-item .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .layer-count {
+        background: var(--pink-100);
+        color: var(--pink-700);
+        font-size: 10px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 100px;
+        min-width: 18px;
+        text-align: center;
+      }
+
+      .footer {
+        width: 100%;
+        margin-top: 40px;
+        background: #f472a8;
+        padding: 18px 24px;
+        text-align: center;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.95);
+        letter-spacing: 0.03em;
+      }
+
+      .footer .sep {
+        margin: 0 10px;
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page-content">
+      <div class="header">
+        <div class="header-badge"><span>&#9679;</span> WebGIS</div>
+        <h1>Mini WebGIS Viewer</h1>
+        <p>Add &amp; manage interactive markers on a simple map canvas</p>
+      </div>
+
+      <div class="card">
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+          <span class="toolbar-label">Add</span>
+          <button class="btn btn-red" id="btnAddRed"><span class="btn-dot btn-dot-red"></span> Red</button>
+          <button class="btn btn-blue" id="btnAddBlue"><span class="btn-dot btn-dot-blue"></span> Blue</button>
+          <button class="btn btn-green" id="btnAddGreen"><span class="btn-dot btn-dot-green"></span> Green</button>
+          <button class="btn btn-yellow" id="btnAddYellow"><span class="btn-dot btn-dot-yellow"></span> Yellow</button>
+          <div class="btn-sep"></div>
+          <button class="btn btn-clear" id="btnClear">&#10005; Clear All</button>
+          <button class="btn btn-toggle" id="btnToggle">&#128065; Hide</button>
+        </div>
+
+        <!-- MAP -->
+        <div class="map-wrap">
+          <div id="map">
+            <!--
+            COMPASS ROSE
+            ─────────────────────────────────────────
+            Structure:
+              • Outer ring + fixed cardinal labels (N/S/E/W) — never rotates
+              • #compassNeedle <g> — rotates via JS on deviceorientation
+            The needle group contains only the two triangles + center dot.
+            Labels are rendered OUTSIDE the needle group so they stay upright.
+
+            Sizing: viewBox="0 0 56 56", center = (28, 28)
+            Needle size reduced so labels are clearly visible around it.
+          -->
+            <svg class="compass-wrap" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+              <!-- outer ring -->
+              <circle cx="28" cy="28" r="27" fill="white" stroke="#f9c6e0" stroke-width="1" />
+
+              <!-- cardinal tick marks (fixed) -->
+              <line x1="28" y1="2" x2="28" y2="8" stroke="#f59dc8" stroke-width="1.2" />
+              <line x1="28" y1="48" x2="28" y2="54" stroke="#f59dc8" stroke-width="1.2" />
+              <line x1="2" y1="28" x2="8" y2="28" stroke="#f59dc8" stroke-width="1.2" />
+              <line x1="48" y1="28" x2="54" y2="28" stroke="#f59dc8" stroke-width="1.2" />
+
+              <!-- diagonal ticks (fixed) -->
+              <line x1="46" y1="10" x2="43" y2="13" stroke="#fce4f0" stroke-width="0.8" />
+              <line x1="10" y1="10" x2="13" y2="13" stroke="#fce4f0" stroke-width="0.8" />
+              <line x1="46" y1="46" x2="43" y2="43" stroke="#fce4f0" stroke-width="0.8" />
+              <line x1="10" y1="46" x2="13" y2="43" stroke="#fce4f0" stroke-width="0.8" />
+
+              <!-- cardinal labels — fixed, outside needle group -->
+              <text x="28" y="16" text-anchor="middle" dominant-baseline="middle" font-family="DM Sans,sans-serif" font-size="7" font-weight="700" fill="#e43d86">N</text>
+              <text x="28" y="41" text-anchor="middle" dominant-baseline="middle" font-family="DM Sans,sans-serif" font-size="6" font-weight="500" fill="#c9b4c0">S</text>
+              <text x="10" y="29" text-anchor="middle" dominant-baseline="middle" font-family="DM Sans,sans-serif" font-size="6" font-weight="500" fill="#c9b4c0">W</text>
+              <text x="46" y="29" text-anchor="middle" dominant-baseline="middle" font-family="DM Sans,sans-serif" font-size="6" font-weight="500" fill="#c9b4c0">E</text>
+
+              <!--
+              NEEDLE GROUP — this <g> rotates via JS.
+              4-direction compass rose. center=(28,28), tip radius=17, base half-width=3.
+              N tip=(28,11)  S tip=(28,45)  E tip=(45,28)  W tip=(11,28)
+              base corners sit at ±3 from center on the perpendicular axis.
+            -->
+              <g id="compassNeedle">
+                <!-- North petal (pink) -->
+                <polygon points="28,11 31,28 28,25 25,28" fill="#e43d86" />
+                <!-- South petal (light pink) -->
+                <polygon points="28,45 31,28 28,31 25,28" fill="#fce4f0" stroke="#f9c6e0" stroke-width="0.5" />
+                <!-- East petal (light pink) -->
+                <polygon points="45,28 28,25 31,28 28,31" fill="#fce4f0" stroke="#f9c6e0" stroke-width="0.5" />
+                <!-- West petal (light pink) -->
+                <polygon points="11,28 28,25 25,28 28,31" fill="#fce4f0" stroke="#f9c6e0" stroke-width="0.5" />
+                <!-- center cap -->
+                <circle cx="28" cy="28" r="3" fill="white" stroke="#e43d86" stroke-width="1.2" />
+                <circle cx="28" cy="28" r="1.2" fill="#e43d86" />
+              </g>
+            </svg>
+
+            <div class="map-click-hint" id="clickHint">Click on the map to place a marker</div>
+          </div>
+        </div>
+
+        <!-- STATUSBAR -->
+        <div class="statusbar">
+          <div class="stat">
+            <span>Total Markers:</span>
+            <span class="stat-badge" id="totalCount">0</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat">
+            <span class="stat-dot" style="background: #ef4444"></span>
+            <span id="countRed">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-dot" style="background: #3b82f6"></span>
+            <span id="countBlue">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-dot" style="background: #22c55e"></span>
+            <span id="countGreen">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-dot" style="background: #eab308"></span>
+            <span id="countYellow">0</span>
+          </div>
+          <div class="coord-display" id="coordDisplay">x: &mdash; &nbsp; y: &mdash;</div>
+        </div>
+
+        <!-- LAYER PANEL -->
+        <div class="layer-panel">
+          <div class="layer-title">Layer Visibility</div>
+          <div class="layer-list">
+            <div class="layer-item" data-color="red">
+              <span class="dot" style="background: #ef4444"></span>
+              Red <span class="layer-count" id="layerCountRed">0</span>
+            </div>
+            <div class="layer-item" data-color="blue">
+              <span class="dot" style="background: #3b82f6"></span>
+              Blue <span class="layer-count" id="layerCountBlue">0</span>
+            </div>
+            <div class="layer-item" data-color="green">
+              <span class="dot" style="background: #22c55e"></span>
+              Green <span class="layer-count" id="layerCountGreen">0</span>
+            </div>
+            <div class="layer-item" data-color="yellow">
+              <span class="dot" style="background: #eab308"></span>
+              Yellow <span class="layer-count" id="layerCountYellow">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end page-content -->
+
+    <div class="footer">💕 Ikhlima Nuranida Zannuba 💕</div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
